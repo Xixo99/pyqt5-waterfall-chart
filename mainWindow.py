@@ -22,61 +22,38 @@ class MainWidow(QMainWindow, Ui_MainWindow):
         super(MainWidow, self).__init__()
         self.setupUi(self)          # setupUi方法写在Ui_Form类中
 
-        self.testButton.clicked.connect(self.getData)
+        self.testButton.clicked.connect(self.getRandData)
         self.gifButton.clicked.connect(self.setTime)
         self.buildUDPButton.clicked.connect(self.buildUDP)
         self.breakUDPButton.clicked.connect(self.breakUDP)
+        self.breakUDPButton.setEnabled(False)
+        self.dataButton.clicked.connect(self.udpClient)
 
         self.timer = QTimer()       # 定义计时器
-        self.timer.timeout.connect(self.getData)
+        self.timer.timeout.connect(self.getRandData)
         self.is_running = False
         self.log_value = []
         self.scale = 200
         self.newdata = np.zeros(self.scale)
-
-        # 1创建套接字
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_socket.settimeout(30)  # 设置超时(s)
-        # 2.绑定一个本地信息
-        self.localaddr = ("127.0.0.1", 9999)  # 必须绑定自己电脑IP和port
+        self.udpRecvThread = None
+        self.udpClientThread = None
 
     '''方法实现区'''
 
     def buildUDP(self):
-        self.udp_socket.bind(self.localaddr)
-        # 3.接收数据
-        print("开始接受数据！")
         self.buildUDPButton.setText('接收数据中...')  # 主页面按钮点击后更新按钮文本
         self.buildUDPButton.setEnabled(False)  # 将按钮设置为不可点击
-        # self.udpThread = CalSumTheard()  # 创建一个线程
-        # self.cal._sum.connect(self.update_sum)  # 线程发过来的信号挂接到槽函数update_sum
-        # self.cal.start()  # 线程启动
-
-        while 1:
-            # recv_data存储元组（接收到的数据，（发送方的ip,port））
-            recv_data = self.udp_socket.recvfrom(1024)
-            recv_msg = recv_data[0]  # 信息内容
-            # send_addr = recv_data[1]  # 信息地址
-
-            recv_msg = recv_msg.decode("gbk")
-            recv_msg = recv_msg.split(' ')
-            recv_msg = map(float, recv_msg)
-            self.newdata = np.array(list(recv_msg))
-
-            print(type(self.newdata))
-            # send_addr = recv_data[1]  # 信息地址
-            self.log_value.insert(0, self.newdata)   # 随即生成新的随机向量模拟新到来数据
-            if len(self.log_value) > 50:
-                # 只缓存最新的50条数据
-                self.log_value.pop()
-
-            # 更新数据后绘图
-            self.drawLineChart()
-            self.drawWaterfall()
-            QApplication.processEvents()
+        self.breakUDPButton.setEnabled(True)
+        self.udpRecvThread = UDPRecvThread()
+        self.udpRecvThread.recvData.connect(self.getUDPData)
 
     def breakUDP(self):
-        self.udp_socket.close()
+        if self.udpRecvThread.isRunning:
+            self.udpRecvThread.kill()
+        self.buildUDPButton.setText('建立UDP')  # 主页面按钮点击后更新按钮文本
+        self.buildUDPButton.setEnabled(True)  # 将按钮设置为不可点击
+        self.breakUDPButton.setEnabled(False)
+        print("UDP连接已断开！")
 
     def setTime(self):
         if self.is_running:
@@ -86,13 +63,27 @@ class MainWidow(QMainWindow, Ui_MainWindow):
             self.timer.start(200)
             self.is_running = True
 
-    def getData(self):
+    def getUDPData(self, recvdata):
+        recvdata = recvdata.split(' ')
+        recvdata = map(float, recvdata)
+        recvdata = np.array(list(recvdata))
+        self.newdata = recvdata
+        self.saveData()
+        self.draw()
+
+    def getRandData(self):
         self.newdata = np.random.randint(0, 255, self.scale)
+        self.saveData()
+        self.draw()
+
+    def saveData(self):
         self.log_value.insert(0, self.newdata)   # 随即生成新的随机向量模拟新到来数据
         if len(self.log_value) > 50:
             # 只缓存最新的50条数据
             self.log_value.pop()
+        self.draw()
 
+    def draw(self):
         # 更新数据后绘图
         self.drawLineChart()
         self.drawWaterfall()
@@ -134,19 +125,66 @@ class MainWidow(QMainWindow, Ui_MainWindow):
         customPlot.rescaleAxes()
         customPlot.replot()
 
+    def udpClient(self):
+        self.udpClientThread = UDPClientThread()
 
-# class UDPThread(QThread):
-#     _update_time = pyqtSignal(str)  # 信号类型 str
 
-#     def __init__(self):
-#         super().__init__()
+class UDPRecvThread(QThread):
+    recvData = pyqtSignal(str)  # 返回信号类型为np.array
 
-#     def run(self):
-#         while 1:
-#             current_time = time.strftime(
-#                 "%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-#             self._update_time.emit(current_time)
-#             time.sleep(1)  # 每秒发送一个信号
+    def __init__(self):
+        super().__init__()
+        # 1创建套接字
+        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket.settimeout(30)  # 设置超时(s)
+        # 2.绑定一个本地端口
+        self.localaddr = ("127.0.0.1", 9999)  # 必须绑定自己电脑IP和port
+        self.udp_socket.bind(self.localaddr)
+        self.start()
+
+    def run(self):
+        # 3.接收数据
+        print("开始接受数据！")
+        while 1:
+            # recv_data存储元组（接收到的数据，（发送方的ip,port））
+            recv_data = self.udp_socket.recvfrom(1024)
+            recv_msg = recv_data[0]  # 信息内容
+            # send_addr = recv_data[1]  # 信息地址
+            recv_msg = recv_msg.decode("gbk")
+
+            self.recvData.emit(recv_msg)
+            QApplication.processEvents()
+
+    def kill(self):
+        self.udp_socket.close()
+        self.terminate()
+
+
+class UDPClientThread(QThread):
+    def __init__(self):
+        super().__init__()
+        self.server_ip = '127.0.0.1'
+        self.server_port = 9999
+
+        self.start()
+        self.rawdata = np.load("row_random_data200.npy")
+        self.noise = np.random.randint(0, 30, 200) - 15
+
+    def run(self):
+
+        # socket.SOCK_DGRAM代表是UDP通信
+        udp_client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_client_socket.connect((self.server_ip, self.server_port))
+
+        data = self.rawdata + self.noise
+
+        str_ = ' '.join(str(x) for x in data)
+        udp_client_socket.send(str_.encode())
+
+        print("数据发送成功！")
+        QApplication.processEvents()
+        udp_client_socket.close()
+        self.terminate()
 
 
 if __name__ == "__main__":

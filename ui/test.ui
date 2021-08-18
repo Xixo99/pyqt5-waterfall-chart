@@ -110,14 +110,14 @@
       <item>
        <widget class="QPushButton" name="testButton">
         <property name="text">
-         <string>单次调试</string>
+         <string>获取单次随机数据</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="gifButton">
         <property name="text">
-         <string>开始采集</string>
+         <string>开始/暂停</string>
         </property>
        </widget>
       </item>
@@ -146,8 +146,18 @@
       </item>
       <item>
        <widget class="QPushButton" name="breakUDPButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
          <string>断开UDP</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="dataButton">
+        <property name="text">
+         <string>模拟发送数据</string>
         </property>
        </widget>
       </item>

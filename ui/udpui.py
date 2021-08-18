@@ -69,8 +69,12 @@ class Ui_MainWindow(object):
         self.buildUDPButton.setObjectName("buildUDPButton")
         self.verticalLayout_3.addWidget(self.buildUDPButton)
         self.breakUDPButton = QtWidgets.QPushButton(self.layoutWidget1)
+        self.breakUDPButton.setEnabled(False)
         self.breakUDPButton.setObjectName("breakUDPButton")
         self.verticalLayout_3.addWidget(self.breakUDPButton)
+        self.dataButton = QtWidgets.QPushButton(self.layoutWidget1)
+        self.dataButton.setObjectName("dataButton")
+        self.verticalLayout_3.addWidget(self.dataButton)
         self.verticalLayout_4.addLayout(self.verticalLayout_3)
 
         self.retranslateUi(MainWindow)
@@ -80,8 +84,9 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Form"))
         self.label.setText(_translate("MainWindow", "Deep Learning Signal Classifier"))
-        self.testButton.setText(_translate("MainWindow", "单次调试"))
-        self.gifButton.setText(_translate("MainWindow", "开始采集"))
+        self.testButton.setText(_translate("MainWindow", "获取单次随机数据"))
+        self.gifButton.setText(_translate("MainWindow", "开始/暂停"))
         self.buildUDPButton.setText(_translate("MainWindow", "建立UDP"))
         self.breakUDPButton.setText(_translate("MainWindow", "断开UDP"))
+        self.dataButton.setText(_translate("MainWindow", "模拟发送数据"))
 from QCustomPlot2 import QCustomPlot
