@@ -28,6 +28,7 @@ class MainWidow(QMainWindow, Ui_MainWindow):
         self.breakUDPButton.clicked.connect(self.breakUDP)
         self.breakUDPButton.setEnabled(False)
         self.dataButton.clicked.connect(self.udpClient)
+        self.dataButton.setEnabled(False)
 
         self.timer = QTimer()       # 定义计时器
         self.timer.timeout.connect(self.getRandData)
@@ -44,6 +45,7 @@ class MainWidow(QMainWindow, Ui_MainWindow):
         self.buildUDPButton.setText('接收数据中...')  # 主页面按钮点击后更新按钮文本
         self.buildUDPButton.setEnabled(False)  # 将按钮设置为不可点击
         self.breakUDPButton.setEnabled(True)
+        #self.dataButton.setEnabled(True)  # 此功能暂时还未完善
         self.udpRecvThread = UDPRecvThread()
         self.udpRecvThread.recvData.connect(self.getUDPData)
 
@@ -171,7 +173,6 @@ class UDPClientThread(QThread):
         self.noise = np.random.randint(0, 30, 200) - 15
 
     def run(self):
-
         # socket.SOCK_DGRAM代表是UDP通信
         udp_client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_client_socket.connect((self.server_ip, self.server_port))
@@ -181,9 +182,9 @@ class UDPClientThread(QThread):
         str_ = ' '.join(str(x) for x in data)
         udp_client_socket.send(str_.encode())
 
-        print("数据发送成功！")
-        QApplication.processEvents()
         udp_client_socket.close()
+        print("数据发送成功！")
+        # QApplication.processEvents()
         self.terminate()
 
 
