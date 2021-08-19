@@ -1,9 +1,6 @@
-import math
 import socket
 import sys
-import json
 import time
-from random import randint, random
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -45,7 +42,7 @@ class MainWidow(QMainWindow, Ui_MainWindow):
         self.buildUDPButton.setText('接收数据中...')  # 主页面按钮点击后更新按钮文本
         self.buildUDPButton.setEnabled(False)  # 将按钮设置为不可点击
         self.breakUDPButton.setEnabled(True)
-        #self.dataButton.setEnabled(True)  # 此功能暂时还未完善
+        # self.dataButton.setEnabled(True)       # 此功能暂时还未完善
         self.udpRecvThread = UDPRecvThread()
         self.udpRecvThread.recvData.connect(self.getUDPData)
 
@@ -64,14 +61,6 @@ class MainWidow(QMainWindow, Ui_MainWindow):
         else:
             self.timer.start(200)
             self.is_running = True
-
-    def getUDPData(self, recvdata):
-        recvdata = recvdata.split(' ')
-        recvdata = map(float, recvdata)
-        recvdata = np.array(list(recvdata))
-        self.newdata = recvdata
-        self.saveData()
-        self.draw()
 
     def getRandData(self):
         self.newdata = np.random.randint(0, 255, self.scale)
@@ -130,6 +119,14 @@ class MainWidow(QMainWindow, Ui_MainWindow):
     def udpClient(self):
         self.udpClientThread = UDPClientThread()
 
+    def getUDPData(self, recvdata):
+        recvdata = recvdata.split(' ')
+        recvdata = map(float, recvdata)
+        recvdata = np.array(list(recvdata))
+        self.newdata = recvdata
+        self.saveData()
+        self.draw()
+
 
 class UDPRecvThread(QThread):
     recvData = pyqtSignal(str)  # 返回信号类型为np.array
@@ -168,9 +165,9 @@ class UDPClientThread(QThread):
         self.server_ip = '127.0.0.1'
         self.server_port = 9999
 
-        self.start()
         self.rawdata = np.load("row_random_data200.npy")
         self.noise = np.random.randint(0, 30, 200) - 15
+        self.start()
 
     def run(self):
         # socket.SOCK_DGRAM代表是UDP通信
